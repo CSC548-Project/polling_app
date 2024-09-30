@@ -10,7 +10,11 @@ if page == "Create Poll":
     options = st.text_area("Poll Options (one per line)")
     if st.button("Create Poll"):
         poll_data = {"question": question, "options": options.split("\n")}
-        st.write("Poll Created:", poll_data)
+        st.write("Poll Created:")
+        st.write(f"Question: {poll_data['question']}")
+        st.write("Options:")
+        for option in poll_data['options']:
+            st.write(f"- {option}")
 
 elif page == "Vote on Poll":
     st.title("Vote on a Poll")
@@ -25,7 +29,9 @@ elif page == "Poll Results":
     poll_id_results = st.text_input("Poll ID for Results")
     if st.button("Get Results"):
         results = {"Option 1": 10, "Option 2": 5, "Option 3": 3}
-        st.write("Poll Results:", results)
+        st.write("Poll Results:")
+        for option, votes in results.items():
+            st.write(f"{option}: {votes} votes")
 
 st.markdown(
     """
