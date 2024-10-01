@@ -4,11 +4,23 @@ import matplotlib.pyplot as plt
 
 # Initialize session state for polls
 if 'polls' not in st.session_state:
-    st.session_state.polls = {}
+    st.session_state.polls = []
 
 st.sidebar.title("Polling System")
 st.sidebar.header("Navigation")
 page = st.sidebar.selectbox("Go to", ["Create Poll", "Vote on Poll", "Poll Results"])
+
+def display_poll(poll_data, poll_index):
+    st.write(f"**Question:** {poll_data['question']}")
+    st.write("**Options:**")
+    for option, votes in zip(poll_data['options'], poll_data['votes']):
+        st.write(f"- {option}: {votes} votes")
+    if st.button("Edit", key=f"edit_{poll_index}"):
+        st.session_state.edit_index = poll_index
+        st.experimental_rerun()
+    if st.button("Delete", key=f"delete_{poll_index}"):
+        del st.session_state.polls[poll_index]
+        st.experimental_rerun()
 
 if page == "Create Poll":
     st.title("Create a Poll")
@@ -19,37 +31,31 @@ if page == "Create Poll":
         options.append(st.text_input(f"Option {i+1}"))
 
     if st.button("Create Poll"):
-        poll_id = len(st.session_state.polls) + 1
         poll_data = {"question": question, "options": options, "votes": [0] * len(options)}
-        st.session_state.polls[poll_id] = poll_data
-        st.write(f"Poll Created with ID: {poll_id}")
-        st.write(f"Question: {poll_data['question']}")
-        st.write("Options:")
-        for option in poll_data['options']:
-            st.write(f"- {option}")
+        st.session_state.polls.append(poll_data)
+        st.write("Your poll has been created!")
+        st.experimental_rerun()
+
+    st.write("**Existing Polls:**")
+    for i, poll in enumerate(st.session_state.polls):
+        display_poll(poll, i)
 
 elif page == "Vote on Poll":
     st.title("Vote on a Poll")
-    poll_id = st.number_input("Poll ID", min_value=1, step=1)
-    if poll_id in st.session_state.polls:
-        poll_data = st.session_state.polls[poll_id]
-        st.write(f"Question: {poll_data['question']}")
-        selected_option = st.radio("Select an Option", poll_data['options'])
-        if st.button("Vote"):
+    for i, poll_data in enumerate(st.session_state.polls):
+        st.write(f"**Question:** {poll_data['question']}")
+        selected_option = st.radio("Select an Option", poll_data['options'], key=f"vote_{i}")
+        if st.button("Vote", key=f"vote_button_{i}"):
             option_index = poll_data['options'].index(selected_option)
             poll_data['votes'][option_index] += 1
-            st.session_state.polls[poll_id] = poll_data
+            st.session_state.polls[i] = poll_data
             st.write(f"Vote Submitted for: {selected_option}")
-    else:
-        st.write("Poll not found. Please enter a valid Poll ID.")
 
 elif page == "Poll Results":
     st.title("Poll Results")
-    poll_id_results = st.number_input("Poll ID for Results", min_value=1, step=1)
-    if poll_id_results in st.session_state.polls:
-        poll_data = st.session_state.polls[poll_id_results]
-        st.write(f"Question: {poll_data['question']}")
-        st.write("Options and Votes:")
+    for poll_data in st.session_state.polls:
+        st.write(f"**Question:** {poll_data['question']}")
+        st.write("**Options and Votes:**")
         for option, votes in zip(poll_data['options'], poll_data['votes']):
             st.write(f"- {option}: {votes} votes")
 
@@ -62,8 +68,6 @@ elif page == "Poll Results":
         df.plot(kind='bar', x='Options', y='Votes', ax=ax, legend=False)
         plt.xticks(rotation=45)
         st.pyplot(fig)
-    else:
-        st.write("Poll not found. Please enter a valid Poll ID.")
 
 st.markdown(
     """
