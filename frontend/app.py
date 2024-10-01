@@ -1,5 +1,9 @@
 import streamlit as st
 
+# Initialize session state for poll ID
+if 'poll_id' not in st.session_state:
+    st.session_state.poll_id = None
+
 # In-memory storage for polls
 polls = {}
 
@@ -15,6 +19,7 @@ if page == "Create Poll":
         poll_id = len(polls) + 1
         poll_data = {"question": question, "options": options.split("\n")}
         polls[poll_id] = poll_data
+        st.session_state.poll_id = poll_id
         st.write(f"Poll Created with ID: {poll_id}")
         st.write(f"Question: {poll_data['question']}")
         st.write("Options:")
@@ -23,7 +28,7 @@ if page == "Create Poll":
 
 elif page == "Vote on Poll":
     st.title("Vote on a Poll")
-    poll_id = st.number_input("Poll ID", min_value=1, step=1)
+    poll_id = st.session_state.poll_id if st.session_state.poll_id else st.number_input("Poll ID", min_value=1, step=1)
     if poll_id in polls:
         poll_data = polls[poll_id]
         st.write(f"Question: {poll_data['question']}")
