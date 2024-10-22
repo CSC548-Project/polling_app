@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Initialize session state for polls
 if 'polls' not in st.session_state:
     st.session_state.polls = []
 
