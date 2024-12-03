@@ -3,29 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poll Master - Available Polls</title>
+    <title>My Polls - Poll Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
     <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-blue-600">Poll Master</h1>
-            <p class="text-gray-600">Choose a poll to participate in</p>
+        <header class="text-center mb-8"> 
+            <h1 class="text-4xl font-bold text-blue-600">Poll Master</h1> 
+            <p class="text-gray-600">Welcome to your dashboard</p> 
         </header>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div th:each="poll : ${polls}" class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-                <a th:href="@{/poll/{id}(id=${poll.id})}" class="block p-6">
-                    <h2 th:text="${poll.title}" class="text-xl font-semibold text-gray-800 mb-2">Poll Title</h2>
-                    <p class="text-gray-600">Click to view and vote</p>
-                </a>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4">My Polls</h2>
+            <div th:if="${#lists.isEmpty(polls)}" class="text-center text-gray-600">
+                <p>You haven't created any polls yet.</p>
+            </div>
+            
+            <div th:unless="${#lists.isEmpty(polls)}">
+                <ul class="space-y-4">
+                    <li th:each="poll : ${polls}" class="border-b pb-4">
+                        <h2 th:text="${poll.title}" class="text-xl font-semibold mb-2">Poll Title</h2>
+                        <p class="text-gray-600 mb-2">Code: <span th:text="${poll.code}" class="font-medium">ABC123</span></p>
+                        <p class="text-gray-600 mb-2">Status: 
+                            <span th:text="${poll.published ? 'Published' : 'Draft'}" 
+                                  th:class="${poll.published ? 'text-green-600' : 'text-yellow-600'}">
+                                Status
+                            </span>
+                        </p>
+                        <a th:href="@{/poll/{code}(code=${poll.code})}" 
+                           class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300">
+                            Manage Poll
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
         
-        <div class="mt-8 text-center">
+        <div class="mt-6 text-center">
             <a href="/create" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300">
                 Create a new poll
             </a>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="/" class="text-gray-500 hover:underline">Logout</a>
         </div>
     </div>
 </body>

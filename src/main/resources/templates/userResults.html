@@ -1,0 +1,84 @@
+<!DOCTYPE html> 
+<html lang="en" xmlns:th="http://www.thymeleaf.org"> 
+    <head> 
+        <meta charset="UTF-8"> 
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+        <title>Poll Results - Poll Master</title> 
+        <script src="https://cdn.tailwindcss.com"></script> 
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    </head> <body class="bg-gray-100 font-sans"> 
+        <div class="container mx-auto px-4 py-8"> 
+            <header class="text-center mb-8"> 
+                <h1 class="text-4xl font-bold text-blue-600">Poll Results</h1> 
+                <h2 th:text="${poll.title}" class="text-2xl text-gray-700 mt-4">Poll Title</h2> 
+            </header>
+
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <ul class="space-y-12">
+                    <li th:each="question, questionStat : ${poll.questions}" class="border-b pb-8 last:border-b-0">
+                        <h3 th:text="${question.text}" class="text-xl font-semibold mb-6 text-gray-800">Question Text</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <ul class="space-y-2">
+                                    <li th:each="option : ${question.options}" class="flex justify-between items-center">
+                                        <span th:text="${option.text}" class="text-gray-700">Option Text</span>
+                                        <span th:text="${option.votes}" class="font-bold text-blue-600">0</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <canvas th:id="${'chart-' + questionStat.index}" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="mt-8 text-center">
+                <a th:href="@{/}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300">Back to Home</a>
+            </div>
+        </div>
+        
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                /*[# th:each="question, questionStat : ${poll.questions}"]*/
+                (function() {
+                    var ctx = document.getElementById(/*[[${'"chart-' + questionStat.index + '"'}]]*/).getContext('2d');
+                    var options = /*[[${question.options}]]*/ [];
+                    if (options && options.length > 0) {
+                        var votes = options.map(function(option) { return option.votes; });
+                        var labels = options.map(function(option) { return option.text; });
+                        var chart = new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    data: votes,
+                                    backgroundColor: [
+                                        'rgba(255, 99, 132, 0.8)',
+                                        'rgba(54, 162, 235, 0.8)',
+                                        'rgba(255, 206, 86, 0.8)',
+                                        'rgba(75, 192, 192, 0.8)',
+                                        'rgba(153, 102, 255, 0.8)',
+                                    ],
+                                    borderColor: 'white',
+                                    borderWidth: 2
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                    }
+                                }
+                            }
+                        });
+                        chart.update();
+                    }
+                })();
+                /*[/]*/
+            });
+        </script>
+    </body> 
+</html>

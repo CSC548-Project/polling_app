@@ -12,6 +12,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +66,12 @@ public class PollController {
         String uniqueCode = generateUniqueCode();
         poll.setCode(uniqueCode);
         poll.setPublished(false);
+        
+        // Set the creator of the poll
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        poll.setCreator(username);
+        
         pollRepository.save(poll);
         
         logger.debug("Saved Poll: {}", poll);
@@ -93,64 +102,78 @@ public class PollController {
         Poll poll = pollRepository.findByCode(code)
             .orElseThrow(() -> new IllegalArgumentException(INVALID_POLL_CODE_MESSAGE + code));
         PollCreationDto pollCreationDto = convertPollToDto(poll);
+        model.addAttribute("poll", poll);
         model.addAttribute(POLL_CREATION_DTO, pollCreationDto);
         return "editPoll";
     }
 
-    @PostMapping("/poll/{code}/edit")
-    public String updatePoll(@PathVariable String code, 
-                             @Valid @ModelAttribute(POLL_CREATION_DTO) PollCreationDto pollCreationDto,
-                             BindingResult bindingResult,
-                             RedirectAttributes redirectAttributes) {
-        logger.debug("Updating poll with code: {}", code);
-        
-        if (bindingResult.hasErrors()) {
-            logger.error("Validation errors: {}", bindingResult.getAllErrors());
-            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult." + POLL_CREATION_DTO, bindingResult);
-            redirectAttributes.addFlashAttribute(POLL_CREATION_DTO, pollCreationDto);
-            return REDIRECT_POLL_URL + code + "/edit";
-        }
-    
-        try {
-            Poll existingPoll = pollRepository.findByCode(code)
-                .orElseThrow(() -> new IllegalArgumentException(INVALID_POLL_CODE_MESSAGE + code));
-            
-            existingPoll.setTitle(pollCreationDto.getTitle());
-            
-            List<Question> updatedQuestions = new ArrayList<>();
-            for (QuestionCreationDto questionDto : pollCreationDto.getQuestions()) {
-                Question question = new Question();
-                question.setText(questionDto.getText());
-                
-                List<Option> options = new ArrayList<>();
-                for (String optionText : questionDto.getOptions()) {
-                    Option option = new Option();
-                    option.setText(optionText);
-                    option.setVotes(0); // Set votes to 0 for new options
-                    options.add(option);
-                }
-                question.setOptions(options);
-                updatedQuestions.add(question);
-            }
-            existingPoll.setQuestions(updatedQuestions);
-            
-            pollRepository.save(existingPoll);
-            logger.info("Poll updated successfully: {}", existingPoll);
-            redirectAttributes.addFlashAttribute("message", "Poll updated successfully");
-        } catch (Exception e) {
-            logger.error("Error updating poll: ", e);
-            redirectAttributes.addFlashAttribute("error", "Error updating poll: " + e.getMessage());
-            return REDIRECT_POLL_URL + code + "/edit";
-        }
-        return REDIRECT_POLL_URL + code;
+@PostMapping("/poll/{code}/edit")
+public String updatePoll(@PathVariable String code, 
+                         @Valid @ModelAttribute("pollCreationDto") PollCreationDto pollCreationDto,
+                         BindingResult bindingResult,
+                         RedirectAttributes redirectAttributes) {
+    if (bindingResult.hasErrors()) {
+        return "editPoll";
     }
+
+    try {
+        Poll existingPoll = pollRepository.findByCode(code)
+            .orElseThrow(() -> new IllegalArgumentException(INVALID_POLL_CODE_MESSAGE + code));
+        
+        // Update poll properties
+        existingPoll.setTitle(pollCreationDto.getTitle());
+        
+        // Update questions and options
+        List<Question> existingQuestions = existingPoll.getQuestions();
+        List<Question> updatedQuestions = new ArrayList<>();
+
+        for (QuestionCreationDto questionDto : pollCreationDto.getQuestions()) {
+            Question question = existingQuestions.stream()
+                .filter(q -> q.getId() != null && q.getId().equals(questionDto.getId()))
+                .findFirst()
+                .orElse(new Question());
+            
+            question.setText(questionDto.getText());
+            
+            List<Option> existingOptions = question.getOptions();
+            List<Option> updatedOptions = new ArrayList<>();
+
+            for (String optionText : questionDto.getOptions()) {
+                Option option = existingOptions.stream()
+                    .filter(o -> o.getText().equals(optionText))
+                    .findFirst()
+                    .orElse(new Option());
+                
+                option.setText(optionText);
+                if (option.getVotes() == null) {
+                    option.setVotes(0);
+                }
+                updatedOptions.add(option);
+            }
+
+            question.getOptions().clear();
+            question.getOptions().addAll(updatedOptions);
+            updatedQuestions.add(question);
+        }
+
+        existingPoll.getQuestions().clear();
+        existingPoll.getQuestions().addAll(updatedQuestions);
+        
+        pollRepository.save(existingPoll);
+        redirectAttributes.addFlashAttribute("message", "Poll updated successfully");
+    } catch (Exception e) {
+        redirectAttributes.addFlashAttribute("error", "Error updating poll: " + e.getMessage());
+    }
+
+    return REDIRECT_POLL_URL + code;
+}
 
     @GetMapping("/poll/{code}/results")
     public String viewResults(@PathVariable String code, Model model) {
         Poll poll = pollRepository.findByCode(code)
             .orElseThrow(() -> new IllegalArgumentException(INVALID_POLL_CODE_MESSAGE + code));
         model.addAttribute("poll", poll);
-        return "pollResults";
+        return "voteResult";
     }
 
     @GetMapping("/poll")
@@ -189,7 +212,7 @@ public class PollController {
         Poll poll = pollRepository.findById(pollId)
             .orElseThrow(() -> new IllegalArgumentException(INVALID_POLL_ID_MESSAGE + pollId));
         model.addAttribute("poll", poll);
-        return "voteResult";
+        return "userResults";
     }
 
     private String generateUniqueCode() {
@@ -233,5 +256,13 @@ public class PollController {
         }
         dto.setQuestions(questionDtos);
         return dto;
+    }
+    @GetMapping("/my-polls")
+    public String showUserPolls(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        List<Poll> userPolls = pollRepository.findByCreator(username);
+        model.addAttribute("polls", userPolls);
+        return "index";
     }
 }

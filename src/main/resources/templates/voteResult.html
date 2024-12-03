@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,7 +30,8 @@
         </div>
         
         <div class="mt-6 text-center">
-            <a th:href="@{/}" class="text-blue-500 hover:underline">Back to polls list</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/poll/{code}(code=${poll.code})}" class="text-blue-500 hover:underline">Manage Poll</a>
+            <a sec:authorize="!hasRole('ADMIN')" th:href="@{/}" class="text-blue-500 hover:underline">Back to Home</a>
         </div>
     </div>
 

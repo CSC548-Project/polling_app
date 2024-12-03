@@ -21,6 +21,9 @@ public class Poll {
 
     private boolean published;
 
+    @Column
+    private String creator;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -60,5 +63,13 @@ public class Poll {
 
     public void setPublished(boolean published) {
         this.published = published;
+    }
+
+    public String getCreator() {
+        return creator;
+    }
+    
+    public void setCreator(String creator) {
+        this.creator = creator;
     }
 }
